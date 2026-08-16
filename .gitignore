@@ -1,0 +1,25 @@
+# Secrets / local runtime state - never commit these
+pricing/secret.key
+pricing/*.db
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (if any tooling installs deps locally)
+node_modules/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build/tool byproducts not meant to be tracked
+.patches/
+*.log

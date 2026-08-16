@@ -1,0 +1,34 @@
+version: '3.9'
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: production
+      FLASK_DEBUG: "0"
+      FLASK_COOKIE_SECURE: "1"
+      FLASK_HTTPS: "0"
+      DATABASE_ENGINE: postgresql
+      DATABASE_URL: postgresql://app_user:change_me@db:5432/multicloud_cost_system
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: multicloud_cost_system
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

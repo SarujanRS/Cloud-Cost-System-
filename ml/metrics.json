@@ -1,0 +1,25 @@
+{
+  "results": {
+    "Linear Regression": {
+      "MAE": 653.83,
+      "RMSE": 955.51,
+      "R2": 0.7538
+    },
+    "Random Forest": {
+      "MAE": 140.45,
+      "RMSE": 214.9,
+      "R2": 0.9875
+    },
+    "Gradient Boosting": {
+      "MAE": 96.66,
+      "RMSE": 149.7,
+      "R2": 0.994
+    }
+  },
+  "best": "Gradient Boosting",
+  "mean_cost": 2476.14,
+  "sample_size": 8000,
+  "cv_folds": 0,
+  "generated_at": "2026-08-16T00:07:46.647115Z",
+  "trigger": "live-retrain"
+}

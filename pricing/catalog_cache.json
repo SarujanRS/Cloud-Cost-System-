@@ -1,0 +1,153 @@
+{
+  "currency": "USD",
+  "updated": "2026-08-15T21:06:46.113939Z",
+  "providers": {
+    "AWS": {
+      "source": "cache",
+      "api": "AWS Price List Bulk API",
+      "regions": {
+        "eu-west-2": {
+          "label": "London",
+          "instances": [
+            {
+              "instance_type": "t3.medium",
+              "vcpu": 2,
+              "ram_gb": 4,
+              "price_hr": 0.0472
+            },
+            {
+              "instance_type": "t3.large",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.0944
+            },
+            {
+              "instance_type": "m6i.large",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.111
+            },
+            {
+              "instance_type": "m6i.xlarge",
+              "vcpu": 4,
+              "ram_gb": 16,
+              "price_hr": 0.222
+            },
+            {
+              "instance_type": "m6i.2xlarge",
+              "vcpu": 8,
+              "ram_gb": 32,
+              "price_hr": 0.444
+            },
+            {
+              "instance_type": "m6i.4xlarge",
+              "vcpu": 16,
+              "ram_gb": 64,
+              "price_hr": 0.888
+            }
+          ],
+          "storage_gb_month": 0.0928,
+          "egress_gb": 0.09,
+          "managed_db_month": 62.0,
+          "load_balancer_month": 18.0
+        }
+      }
+    },
+    "Azure": {
+      "source": "cache",
+      "api": "Azure Retail Prices API",
+      "regions": {
+        "uksouth": {
+          "label": "UK South",
+          "instances": [
+            {
+              "instance_type": "B2ms",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.0928
+            },
+            {
+              "instance_type": "D2s_v5",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.107
+            },
+            {
+              "instance_type": "D4s_v5",
+              "vcpu": 4,
+              "ram_gb": 16,
+              "price_hr": 0.214
+            },
+            {
+              "instance_type": "D8s_v5",
+              "vcpu": 8,
+              "ram_gb": 32,
+              "price_hr": 0.428
+            },
+            {
+              "instance_type": "D16s_v5",
+              "vcpu": 16,
+              "ram_gb": 64,
+              "price_hr": 0.856
+            }
+          ],
+          "storage_gb_month": 0.0805,
+          "egress_gb": 0.087,
+          "managed_db_month": 59.0,
+          "load_balancer_month": 16.0
+        }
+      }
+    },
+    "GCP": {
+      "source": "cache",
+      "api": "GCP Cloud Billing Catalog API",
+      "regions": {
+        "europe-west2": {
+          "label": "London",
+          "instances": [
+            {
+              "instance_type": "e2-medium",
+              "vcpu": 2,
+              "ram_gb": 4,
+              "price_hr": 0.0367
+            },
+            {
+              "instance_type": "e2-standard-2",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.0734
+            },
+            {
+              "instance_type": "n2-standard-2",
+              "vcpu": 2,
+              "ram_gb": 8,
+              "price_hr": 0.1077
+            },
+            {
+              "instance_type": "n2-standard-4",
+              "vcpu": 4,
+              "ram_gb": 16,
+              "price_hr": 0.2154
+            },
+            {
+              "instance_type": "n2-standard-8",
+              "vcpu": 8,
+              "ram_gb": 32,
+              "price_hr": 0.4308
+            },
+            {
+              "instance_type": "n2-standard-16",
+              "vcpu": 16,
+              "ram_gb": 64,
+              "price_hr": 0.8616
+            }
+          ],
+          "storage_gb_month": 0.085,
+          "egress_gb": 0.085,
+          "managed_db_month": 63.0,
+          "load_balancer_month": 18.5
+        }
+      }
+    }
+  }
+}

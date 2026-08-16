@@ -1,0 +1,25 @@
+{
+  "services": [
+    {
+      "id": "vm",
+      "group": "Infrastructure Services",
+      "category": "Virtual Machines",
+      "icon": "memory",
+      "products": {"AWS": "Amazon EC2", "Azure": "Azure Virtual Machines", "GCP": "Compute Engine"},
+      "model": "vm",
+      "accuracy": "live",
+      "desc": "Create and run virtual machines. Priced from the live on-demand rate of the cheapest instance that meets your workload."
+    },
+    {
+      "id": "object_storage",
+      "group": "Infrastructure Services",
+      "category": "Object Storage",
+      "icon": "storage",
+      "products": {"AWS": "Amazon S3", "Azure": "Azure Blob Storage", "GCP": "Cloud Storage"},
+      "model": "planning",
+      "accuracy": "indicative",
+      "rates": {"AWS": 0.023, "Azure": 0.0184, "GCP": 0.02},
+      "planning": {"fields": [{"id": "qty", "type": "number", "label": "Storage (GB)", "role": "perunit", "default": 500, "min": 1}]}
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Cloud Cost",
+  "short_name": "Cloud Cost",
+  "description": "Compare AWS, Azure and Google Cloud pricing side by side.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#202124",
+  "theme_color": "#202124",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
