@@ -71,12 +71,16 @@ def parse_billing_csv(file_stream):
 def summarize_billing(rows):
     totals = {"AWS": 0.0, "Azure": 0.0, "GCP": 0.0, "Other": 0.0}
     by_service = {}
+    by_date = {}
     dates = [r["date"] for r in rows if r["date"]]
     for r in rows:
         p = r["provider"] if r["provider"] in ("AWS", "Azure", "GCP") else "Other"
         totals[p] += r["amount"]
         bucket = by_service.setdefault(r["service"], {"AWS": 0.0, "Azure": 0.0, "GCP": 0.0, "Other": 0.0})
         bucket[p] += r["amount"]
+        if r["date"]:
+            day = by_date.setdefault(r["date"], {"AWS": 0.0, "Azure": 0.0, "GCP": 0.0, "Other": 0.0})
+            day[p] += r["amount"]
 
     for p in totals:
         totals[p] = round(totals[p], 2)
@@ -84,9 +88,19 @@ def summarize_billing(rows):
         for p in by_service[svc]:
             by_service[svc][p] = round(by_service[svc][p], 2)
 
+    # Sorted daily series (date + per-provider total) so the UI can chart actual
+    # spend over time, or roll it up into weekly/monthly buckets client-side.
+    daily = []
+    for date in sorted(by_date):
+        row = {"date": date}
+        for p in by_date[date]:
+            row[p] = round(by_date[date][p], 2)
+        daily.append(row)
+
     return {
         "totals": totals, "by_service": by_service, "row_count": len(rows),
         "date_range": {"from": min(dates), "to": max(dates)} if dates else None,
+        "daily": daily,
     }
 
 
@@ -133,6 +147,38 @@ def detect_anomalies(rows, z_threshold=3.5, min_days=4):
                     "provider": p, "date": date, "amount": round(amount, 2),
                     "baseline": round(median, 2), "z_score": round(z, 2),
                     "direction": "spike" if z > 0 else "drop",
+                    "drivers": _service_root_cause(rows, p, date),
                 })
     anomalies.sort(key=lambda a: -abs(a["z_score"]))
     return anomalies
+
+
+def _service_root_cause(rows, provider, date):
+    """For a flagged (provider, date) anomaly, name the service(s) that most
+    drove the deviation: each service's spend on that day vs its own median
+    spend (across every day it appears for this provider). Not a claim of
+    exact causal attribution - just the biggest contributor(s) to the day
+    looking unusual, which is what "why did this spike" actually needs."""
+    by_service_day = {}
+    for r in rows:
+        if not r["date"]:
+            continue
+        p = r["provider"] if r["provider"] in ("AWS", "Azure", "GCP") else "Other"
+        if p != provider:
+            continue
+        by_service_day.setdefault(r["service"], {}).setdefault(r["date"], 0.0)
+        by_service_day[r["service"]][r["date"]] += r["amount"]
+
+    contributions = []
+    for service, day_map in by_service_day.items():
+        if date not in day_map:
+            continue
+        amounts = list(day_map.values())
+        median = statistics.median(amounts) if len(amounts) >= 2 else 0.0
+        delta = day_map[date] - median
+        contributions.append({
+            "service": service, "amount": round(day_map[date], 2),
+            "baseline": round(median, 2), "delta": round(delta, 2),
+        })
+    contributions.sort(key=lambda c: -abs(c["delta"]))
+    return contributions[:3]

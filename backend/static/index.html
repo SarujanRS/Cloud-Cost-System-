@@ -128,6 +128,27 @@
   .rec-chip .material-symbols-outlined{font-size:14px}
   .prov.best{border-color:#2c5b3d;box-shadow:0 0 0 1px #2c5b3d,0 6px 18px rgba(0,0,0,.35)}
   .prov.value{box-shadow:0 0 0 1px #2c4a6b}
+  .save-badge{display:inline-flex;align-items:center;gap:4px;background:var(--good-bg);color:var(--good);font-size:11px;font-weight:700;padding:3px 9px 3px 7px;border-radius:999px;border:1px solid #2c5b3d;margin-top:8px}
+  .save-badge .material-symbols-outlined{font-size:13px}
+
+  .viewseg{display:flex;gap:0;border:1px solid var(--border-2);border-radius:8px;overflow:hidden;height:30px;flex:0 0 auto}
+  .viewseg button{border:0;background:transparent;color:var(--ink-2);font-size:11.5px;cursor:pointer;padding:0 12px;border-right:1px solid var(--border-2)}
+  .viewseg button:last-child{border-right:0}.viewseg button.active{background:#283142;color:#c9d7ff;font-weight:600}
+
+  .heat-table{width:100%;border-collapse:separate;border-spacing:3px}
+  .heat-table th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;text-align:left;padding:0 10px 6px}
+  .heat-table th .heat-region{display:block;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;margin-top:2px}
+  .heat-table td{padding:0;vertical-align:middle}
+  .heat-table td.svc{color:var(--ink);font-size:12.5px;padding:0 10px;white-space:nowrap}
+  .heat-cell{border-radius:8px;padding:8px 12px;cursor:pointer;transition:filter .1s ease;border:1px solid transparent}
+  .heat-cell:hover{filter:brightness(1.15)}
+  .heat-cell .hv{font-family:var(--mono);font-weight:600;font-size:13.5px;color:var(--ink)}
+  .heat-cell .hs{display:block;font-size:10px;margin-top:1px}
+  .heat-cell.heat-best{background:var(--good-bg);border-color:#2c5b3d}
+  .heat-cell.heat-best .hs{color:var(--good)}
+  .heat-cell.heat-none{background:transparent;color:var(--muted);cursor:default;text-align:center}
+  .heat-cell.heat-none:hover{filter:none}
+  .heat-cell .hs.over{color:#ffb4ac}
   .callout{background:#1b2a3a;border:1px solid #2c4a6b;border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;color:var(--ink)}.callout .k{color:var(--good);font-weight:700}
   .budget-alert{background:var(--bad-bg);border:1px solid #6b2e2a;border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;color:#ffd7d2;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .budget-alert b{color:#fff}
@@ -419,12 +440,19 @@
         <button class="analysis-tab active" data-analysis="comparison">Cost by service</button>
         <button class="analysis-tab" data-analysis="evaluation">Model evaluation &amp; hypotheses</button>
         <button class="analysis-tab" data-analysis="provider">Total monthly cost by provider</button>
+        <button class="analysis-tab" data-analysis="savings">Savings &amp; ROI</button>
         <button class="analysis-tab" data-analysis="billing">Billing reconciliation</button>
         <button class="analysis-tab" data-analysis="portfolio">Portfolio</button>
       </div>
 
       <section class="card analysis-panel active" id="cmpPanel">
-        <h3 id="cmpTitle">Cost by service</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <h3 id="cmpTitle" style="margin:0">Cost by service</h3>
+          <div class="viewseg" id="cmpViewSeg">
+            <button data-view="table" class="active">Table</button>
+            <button data-view="heatmap">Heatmap</button>
+          </div>
+        </div>
         <div id="cmpArea"></div>
       </section>
 
@@ -439,8 +467,14 @@
       <section class="card analysis-panel" id="providerPanel">
         <h3>Total monthly cost by provider</h3>
         <canvas id="brkChart" height="150"></canvas>
+        <div class="hint" style="margin-top:6px">Click a segment to open that product's full review.</div>
         <div class="rv-sec-title">Normalized rate comparison <span style="text-transform:none;font-weight:400;letter-spacing:0"> — best-fit VM instance, controlling for size</span></div>
         <div id="normalizedArea"></div>
+      </section>
+
+      <section class="card analysis-panel" id="savingsPanel">
+        <h3>Savings &amp; ROI <span style="font-weight:400;color:var(--muted);font-size:11px">Annual savings, reserved/committed-use terms, spot breakeven and right-sizing for this scenario</span></h3>
+        <div id="savingsArea"></div>
       </section>
 
       <section class="card analysis-panel" id="billingPanel">
@@ -449,6 +483,24 @@
           <a class="btn" id="billingTemplateBtn" href="/api/billing/template"><span class="material-symbols-outlined" style="font-size:16px">download</span> Download CSV template</a>
           <button class="btn primary" id="billingUploadBtn"><span class="material-symbols-outlined" style="font-size:16px">upload</span> Upload actual billing CSV</button>
           <input type="file" id="billingFileInput" accept=".csv" style="display:none">
+        </div>
+        <div id="billingTrendWrap" style="display:none;margin-bottom:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+            <div class="rv-sec-title" style="margin:0;padding-top:0;border-top:0">Spend over time <span style="text-transform:none;font-weight:400;letter-spacing:0"> — from the imported billing CSV</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="viewseg" id="trendGranSeg">
+                <button data-gran="day" class="active">Daily</button>
+                <button data-gran="week">Weekly</button>
+                <button data-gran="month">Monthly</button>
+              </div>
+              <div class="viewseg" id="trendViewSeg">
+                <button data-view="chart" class="active">Chart</button>
+                <button data-view="table">Table</button>
+              </div>
+            </div>
+          </div>
+          <canvas id="trendChart" height="90"></canvas>
+          <div id="trendTableArea"></div>
         </div>
         <div id="billingArea"><div class="hint">Upload a CSV (columns: date, provider, service, region, amount) covering the same period as this scenario to compare actual spend against the estimate.</div></div>
       </section>
@@ -1585,6 +1637,7 @@ async function applySharedOrHashScenario(){
 
 let currentUser=null;
 let currentRole="Owner";
+let isGuest=false;
 function isViewer(){ return currentRole==="Viewer"; }
 function initials(name){
   const parts=(name||"").trim().split(/\s+/).filter(Boolean);
@@ -1808,11 +1861,19 @@ function endTour(){
 
 function applyRoleGatingStatic(){
   const viewer=isViewer();
-  ["loadExampleBtn","resetScenarioBtn","savePresetBtn","importJsonBtn","budget","reg_AWS","reg_Azure","reg_GCP","refreshBtn","retrainBtn"].forEach(id=>{
+  // Scenario-building controls are purely client-side (localStorage / in-memory
+  // state) and need no login, so only a real assigned Viewer role locks them -
+  // an anonymous guest should still be able to use them.
+  ["loadExampleBtn","resetScenarioBtn","savePresetBtn","importJsonBtn","budget","reg_AWS","reg_Azure","reg_GCP"].forEach(id=>{
     const el=document.getElementById(id); if(el) el.disabled=viewer;
   });
+  // refresh/retrain hit server endpoints that require a signed-in Editor+
+  // session, so guests are gated the same as Viewers here.
+  ["refreshBtn","retrainBtn"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.disabled=viewer||isGuest;
+  });
   document.querySelectorAll("#pmSeg button,#objSeg button").forEach(b=>b.disabled=viewer);
-  const sidebarRole=document.getElementById("sidebarRoleDisplay"); if(sidebarRole) sidebarRole.textContent=currentRole;
+  const sidebarRole=document.getElementById("sidebarRoleDisplay"); if(sidebarRole) sidebarRole.textContent=isGuest?"Guest":currentRole;
 }
 
 function kpiCard(icon,label,value,sub,warn){
@@ -2180,10 +2241,11 @@ function setAnalysisTab(tabName){
   activeAnalysisTab = tabName;
   document.querySelectorAll(".analysis-tab").forEach(btn => btn.classList.toggle("active", btn.dataset.analysis === tabName));
   document.querySelectorAll(".analysis-panel").forEach(panel => {
-    const targetId = tabName === "comparison" ? "cmpPanel" : tabName === "evaluation" ? "evalPanel" : tabName === "billing" ? "billingPanel" : tabName === "portfolio" ? "portfolioPanel" : "providerPanel";
+    const targetId = tabName === "comparison" ? "cmpPanel" : tabName === "evaluation" ? "evalPanel" : tabName === "billing" ? "billingPanel" : tabName === "portfolio" ? "portfolioPanel" : tabName === "savings" ? "savingsPanel" : "providerPanel";
     panel.classList.toggle("active", panel.id === targetId);
   });
   if(tabName==="portfolio") renderPortfolio();
+  if(tabName==="savings") renderSavingsPanel();
 }
 
 function render(){
@@ -2218,6 +2280,7 @@ function render(){
     const card=document.createElement("div");card.className="prov "+PCLASS[p]+(isRec?" best":"")+(isVal&&!isRec?" value":"");
     card.innerHTML='<div class="bar"></div>'+(isRec?'<div class="rec-chip">'+mi("check_circle",{size:14})+(objective==="value"?"Best value":"Recommended")+'</div>':'')
       +'<div class="body"><div class="pname"><span class="logo">'+PINIT[p]+'</span> '+PLABEL[p]+'</div><div class="cost">'+fmt(totals[p])+'</div>'
+      +((isRec&&dearest!==p&&(totals[dearest]-totals[p])>0)?'<div class="save-badge">'+mi("savings",{size:13})+'Save '+fmt(totals[dearest]-totals[p])+'/mo vs '+PLABEL[dearest]+'</div>':'')
       +'<div class="permo">total / month · '+selected.size+' products · <span class="live '+(CATALOG.providers[p].source==='live'?'on':'cache')+'" title="'+(CATALOG.providers[p].source==='live'?'Fetched directly from the provider pricing API.':'Falling back to cached/seed rates — see the status row above for the reason.')+'">'+(CATALOG.providers[p].source==='live'?'LIVE':'CACHED')+'</span></div>'
       +'<div class="metrics">'
       +(eff[p]!=null?'<span class="tagm eff" title="Monthly cost ÷ total vCPU (or ÷ 1 if no VM is in this estimate) — lower is more cost-efficient.">'+mi("speed",{size:12})+fmt(eff[p])+' / unit</span>':'')
@@ -2230,14 +2293,22 @@ function render(){
 
   renderCmp(provs,totals,cheapest);renderEval(totals,eff);drawChart(provs,totals);renderNormalizedComparison();
   if(activeAnalysisTab==="portfolio") renderPortfolio();
+  if(activeAnalysisTab==="savings") renderSavingsPanel();
   document.getElementById("srcline").innerHTML=(BACKEND?"Live VM &amp; storage prices from the Flask backend. ":"Standalone preview using embedded rates — run the backend for live VM prices. ")
     +"VM pricing model, region and budget are applied client-side. Products marked <b>LIVE</b> use current unit rates; <b>INDIC.</b> use representative rates.";
 }
 function pricingLabel(){return pricingModel==="ondemand"?"on-demand":pricingModel==="reserved"?"reserved 1-yr":"spot";}
 
+let cmpView="table";
 function renderCmp(provs,totals,winner){const area=document.getElementById("cmpArea");const sel=SERVICES.filter(s=>selected.has(s.id));
+  const heatBtn=document.querySelector('#cmpViewSeg [data-view="heatmap"]');
+  if(heatBtn) heatBtn.disabled = activeProv!=="ALL";
+  document.querySelectorAll('#cmpViewSeg button').forEach(b=>b.classList.toggle("active", b.dataset.view===(activeProv==="ALL"?cmpView:"table")));
   if(!sel.length){area.innerHTML='<div class="hint">No products selected.</div>';document.getElementById("cmpTitle").textContent="Cost by service";return;}
-  if(activeProv==="ALL"){document.getElementById("cmpTitle").textContent="Service-by-service comparison";
+  if(activeProv==="ALL"&&cmpView==="heatmap"){
+    document.getElementById("cmpTitle").textContent="Service-by-service comparison";
+    renderServiceHeatmap(area,sel);
+  }else if(activeProv==="ALL"){document.getElementById("cmpTitle").textContent="Service-by-service comparison";
     let h='<table class="cmp"><tr><th>Product</th><th><div class="cellhead aws"><span class="logo">AWS</span>AWS</div></th><th><div class="cellhead azure"><span class="logo">AZ</span>Azure</div></th><th><div class="cellhead gcp"><span class="logo">GCP</span>Google Cloud</div></th></tr>';
     for(const s of sel){const c={AWS:serviceCost(s,"AWS"),Azure:serviceCost(s,"Azure"),GCP:serviceCost(s,"GCP")};const min=Math.min(c.AWS,c.Azure,c.GCP);
       h+='<tr><td>'+mi(s.icon,{size:16})+' <b>'+s.category+'</b></td>';for(const p of["AWS","Azure","GCP"])h+='<td class="num '+(c[p]===min&&min>0?"win":"")+'">'+fmt(c[p])+'<div class="prod">'+s.products[p]+'</div></td>';h+='</tr>';}
@@ -2253,6 +2324,47 @@ function renderCmp(provs,totals,winner){const area=document.getElementById("cmpA
     h+='<table class="cmp" style="margin-top:6px"><tr><th>Instance</th><th>vCPU</th><th>RAM</th><th style="text-align:right">$/hr</th></tr>';
     for(const i of node.instances)h+='<tr><td>'+i.instance_type+'</td><td>'+i.vcpu+'</td><td>'+i.ram_gb+' GB</td><td class="num">$'+(i.price_hr*PM_MULT[pricingModel]).toFixed(4)+'</td></tr>';
     h+='</table>';area.innerHTML=h;}}
+
+// Service x provider cost heatmap: cell shade = magnitude within that service's
+// row (lighter = cheaper), the cheapest cell per row is called out with a
+// status badge, and every cell is a drill-down into that product's review.
+function renderServiceHeatmap(area,sel){
+  const regionLabel=p=>{const r=activeRegions[p];const node=CATALOG.providers[p].regions[r];return node?(node.label||r):r;};
+  let h='<table class="heat-table"><tr><th>Product</th>'
+    +['AWS','Azure','GCP'].map(p=>'<th><div class="cellhead '+PCLASS[p]+'"><span class="logo">'+PINIT[p]+'</span>'+PLABEL[p]+'</div><span class="heat-region">'+esc(regionLabel(p))+'</span></th>').join('')
+    +'</tr>';
+  for(const s of sel){
+    const c={AWS:serviceCost(s,"AWS"),Azure:serviceCost(s,"Azure"),GCP:serviceCost(s,"GCP")};
+    const vals=["AWS","Azure","GCP"].map(p=>c[p]).filter(v=>v!=null);
+    const rowMin=vals.length?Math.min(...vals):null, rowMax=vals.length?Math.max(...vals):null;
+    h+='<tr><td class="svc">'+mi(s.icon,{size:15})+' '+esc(s.category)+'</td>';
+    for(const p of["AWS","Azure","GCP"]){
+      const v=c[p];
+      if(v==null){ h+='<td><div class="heat-cell heat-none">no fit</div></td>'; continue; }
+      if(rowMin===rowMax||v===rowMin){
+        h+='<td><div class="heat-cell heat-best" data-svc="'+s.id+'" tabindex="0" title="Cheapest for '+esc(s.category)+' — click to review">'
+          +'<span class="hv">'+fmt(v)+'</span><span class="hs">'+mi("check_circle",{size:11})+' cheapest</span></div></td>';
+      }else{
+        const pctOver=rowMin>0?(((v-rowMin)/rowMin)*100):0;
+        // Scale off the actual % over cheapest (fixed 0-40% range), not the
+        // row's own min/max - otherwise a +2% cell and a +25% cell in a
+        // different row can land at the same intensity, which misrepresents
+        // the magnitude the shading is supposed to show.
+        const t=Math.min(pctOver,40)/40;
+        const alpha=(0.08+t*0.42).toFixed(2);
+        h+='<td><div class="heat-cell" data-svc="'+s.id+'" tabindex="0" style="background:rgba(242,139,130,'+alpha+')" title="'+esc(s.category)+' on '+PLABEL[p]+' — click to review">'
+          +'<span class="hv">'+fmt(v)+'</span><span class="hs over">+'+pctOver.toFixed(0)+'% vs cheapest</span></div></td>';
+      }
+    }
+    h+='</tr>';
+  }
+  h+='</table><div class="hint" style="margin-top:10px">Shading shows how much pricier a cell is than the cheapest provider for that product, within the provider region shown above each column. Click any cell to open that product\'s full review.</div>';
+  area.innerHTML=h;
+  area.querySelectorAll('.heat-cell[data-svc]').forEach(el=>{
+    el.onclick=()=>renderReview(el.dataset.svc);
+    el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); renderReview(el.dataset.svc); } };
+  });
+}
 
 function renderEvalStatus(){
   const row=document.getElementById("evalStatusRow");
@@ -2318,6 +2430,60 @@ function computePresetTotals(preset){
     selected=savedSelected; workloadState=savedWorkload; pricingModel=savedPricingModel; objective=savedObjective; budget=savedBudget;
   }
 }
+function presetServiceCosts(preset, provider){
+  const savedSelected=selected, savedWorkload=workloadState, savedPricingModel=pricingModel, savedObjective=objective, savedBudget=budget;
+  try{
+    const v=preset.values||{};
+    selected=new Set(Array.isArray(v.selected)?v.selected:[]);
+    workloadState={min_vcpu:v.min_vcpu??4,min_ram_gb:v.min_ram_gb??16,instance_count:v.instance_count??4,monthly_hours:v.monthly_hours??730};
+    pricingModel=v.pricingModel||"ondemand";
+    objective=v.objective||"cost";
+    budget=Number(v.budget)||0;
+    const costs={};
+    for(const s of SERVICES) if(selected.has(s.id)) costs[s.id]=serviceCost(s,provider);
+    return costs;
+  } finally {
+    selected=savedSelected; workloadState=savedWorkload; pricingModel=savedPricingModel; objective=savedObjective; budget=savedBudget;
+  }
+}
+
+// Diffs two saved presets on one provider and attributes the $ change to
+// specific service adds/removes/changes - the "why did cost change" behind
+// the raw before/after totals already shown in the compare table.
+function explainScenarioDiff(presetA, presetB, provider){
+  const costsA=presetServiceCosts(presetA, provider), costsB=presetServiceCosts(presetB, provider);
+  const ids=new Set([...Object.keys(costsA), ...Object.keys(costsB)]);
+  const bullets=[];
+  for(const id of ids){
+    const svc=SVC(id); if(!svc) continue;
+    const a=costsA[id], b=costsB[id];
+    if(a==null && b!=null){ bullets.push({delta:b, label:'+ Added <b>'+esc(svc.category)+'</b> ('+fmt(b)+'/mo)'}); continue; }
+    if(a!=null && b==null){ bullets.push({delta:-a, label:'− Removed <b>'+esc(svc.category)+'</b> (was '+fmt(a)+'/mo)'}); continue; }
+    if(a!=null && b!=null && Math.abs(b-a)>0.01){
+      let extra="";
+      if(id==="vm"){
+        const va=presetA.values||{}, vb=presetB.values||{};
+        const parts=[];
+        if((va.instance_count??4)!==(vb.instance_count??4)) parts.push("instance count "+(va.instance_count??4)+"→"+(vb.instance_count??4));
+        if((va.min_vcpu??4)!==(vb.min_vcpu??4)) parts.push("min vCPU "+(va.min_vcpu??4)+"→"+(vb.min_vcpu??4));
+        if((va.min_ram_gb??16)!==(vb.min_ram_gb??16)) parts.push("min RAM "+(va.min_ram_gb??16)+"→"+(vb.min_ram_gb??16)+"GB");
+        if((va.pricingModel||"ondemand")!==(vb.pricingModel||"ondemand")) parts.push("pricing "+(va.pricingModel||"ondemand")+"→"+(vb.pricingModel||"ondemand"));
+        if(parts.length) extra=' <span class="hint">('+esc(parts.join(", "))+')</span>';
+      }
+      bullets.push({delta:b-a, label:'<b>'+esc(svc.category)+'</b>: '+fmt(a)+' → '+fmt(b)+extra});
+    }
+  }
+  if(!bullets.length) return "";
+  bullets.sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
+  const totalA=Object.values(costsA).reduce((s,v)=>s+(v||0),0);
+  const totalB=Object.values(costsB).reduce((s,v)=>s+(v||0),0);
+  const pct=totalA>0?((totalB-totalA)/totalA*100):0;
+  let h='<div class="rv-sec-title">Why did cost change? <span style="text-transform:none;font-weight:400;letter-spacing:0"> — on '+PLABEL[provider]+', '+esc(presetA.name)+' → '+esc(presetB.name)+'</span></div>';
+  h+='<div class="callout"><b>'+(pct>=0?'+':'')+pct.toFixed(1)+'%</b> ('+fmt(totalA)+' → '+fmt(totalB)+'/mo)</div>';
+  h+='<ul style="margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.9">'+bullets.map(b=>'<li>'+b.label+'</li>').join("")+'</ul>';
+  return h;
+}
+
 function renderPortfolio(){
   const host=document.getElementById("portfolioArea");
   if(!host) return;
@@ -2361,6 +2527,165 @@ function renderNormalizedComparison(){
   host.innerHTML=h;
 }
 
+// Reserved-instance terms beyond the app's existing 1-yr "Reserved" pricing
+// toggle. 1yr matches PM_MULT.reserved exactly; 3yr is an industry-typical
+// estimate (~58% off blended standard/no-upfront rates), not a live quote.
+// There's deliberately no 5-year tier: none of AWS/Azure/GCP sell a standard
+// public 5-year reserved/committed-use term - that's only available via a
+// custom negotiated enterprise agreement, so a specific % here would be
+// fabricated rather than modeled.
+const COMMIT_TERMS = [
+  {id:"ondemand", label:"On-demand", mult:1.0},
+  {id:"1yr", label:"1-yr reserved", mult:PM_MULT.reserved},
+  {id:"3yr", label:"3-yr committed", mult:0.42},
+];
+let rightsizeReduction = 15; // % headroom explored by the right-sizing what-if
+
+function vmCostAtMult(prov, mult){
+  const wl=readWorkload(); const region=activeRegions[prov]; const node=CATALOG.providers[prov].regions[region];
+  const viable=(node.instances||[]).filter(i=>i.vcpu>=wl.min_vcpu&&i.ram_gb>=wl.min_ram_gb).sort((a,b)=>a.price_hr-b.price_hr);
+  if(!viable.length) return null;
+  const inst=viable[0];
+  return {inst, monthly:+(inst.price_hr*wl.monthly_hours*wl.instance_count*mult).toFixed(2)};
+}
+function bestInstanceForReqs(prov, minVcpu, minRam){
+  const wl=readWorkload(); const region=activeRegions[prov]; const node=CATALOG.providers[prov].regions[region];
+  const viable=(node.instances||[]).filter(i=>i.vcpu>=minVcpu&&i.ram_gb>=minRam).sort((a,b)=>a.price_hr-b.price_hr);
+  if(!viable.length) return null;
+  const inst=viable[0]; const mult=PM_MULT[pricingModel];
+  return {inst, monthly:+(inst.price_hr*wl.monthly_hours*wl.instance_count*mult).toFixed(2)};
+}
+
+function renderSavingsPanel(){
+  const area=document.getElementById("savingsArea");
+  if(!area) return;
+  if(!selected.size){ area.innerHTML='<div class="hint">Pick a category on the left, then a product, to build your estimate.</div>'; return; }
+  const totals={AWS:providerTotal("AWS"),Azure:providerTotal("Azure"),GCP:providerTotal("GCP")};
+  const rec=pickRecommended(totals);
+
+  // Ranked, actionable recommendations - each one traces directly to a
+  // formula shown in detail further down this panel; this is just the
+  // top few resurfaced by $ impact, not a separate model.
+  const recs=[];
+  if(rec){
+    const worseOthers=["AWS","Azure","GCP"].filter(p=>p!==rec).map(p=>({p,diff:totals[p]-totals[rec]})).filter(o=>o.diff>0).sort((a,b)=>b.diff-a.diff);
+    if(worseOthers.length){
+      const top=worseOthers[0];
+      recs.push({icon:"swap_horiz", title:"Switch to "+PLABEL[rec], detail:"save "+fmt(top.diff)+"/mo vs "+PLABEL[top.p], yr:top.diff*12});
+    }
+    if(selected.has("vm")){
+      const od=vmCostAtMult(rec,1.0), c3=vmCostAtMult(rec,0.42);
+      if(od&&c3&&od.monthly>c3.monthly){
+        recs.push({icon:"handshake", title:"Buy 3-yr committed VMs on "+PLABEL[rec], detail:"save "+fmt(od.monthly-c3.monthly)+"/mo vs on-demand", yr:(od.monthly-c3.monthly)*12});
+      }
+      const wl=readWorkload();
+      const minVcpu=Math.max(1,Math.floor(wl.min_vcpu*0.85)), minRam=Math.max(1,Math.floor(wl.min_ram_gb*0.85));
+      const cur=bestInstance(rec), alt=bestInstanceForReqs(rec,minVcpu,minRam);
+      if(cur&&alt&&alt.monthly<cur.compute){
+        recs.push({icon:"trending_down", title:"Right-size "+PLABEL[rec]+" to "+alt.inst.instance_type, detail:"save "+fmt(cur.compute-alt.monthly)+"/mo if ~15% less vCPU/RAM works for this workload", yr:(cur.compute-alt.monthly)*12});
+      }
+    }
+    recs.sort((a,b)=>b.yr-a.yr);
+  }
+
+  let h="";
+
+  h+='<div class="rv-sec-title" style="margin-top:0;padding-top:0;border-top:0">Recommendations</div>';
+  if(recs.length){
+    h+=recs.slice(0,4).map(r=>'<div class="callout" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">'
+      +'<div>'+mi(r.icon,{size:16})+' <b>'+esc(r.title)+'</b> <span class="hint">— '+esc(r.detail)+'</span></div>'
+      +'<div style="color:var(--good);font-weight:700;white-space:nowrap">+'+fmt(r.yr)+'/yr</div></div>').join('');
+  } else {
+    h+='<div class="hint" style="margin-bottom:16px">No clear savings opportunity found for the current selection — you\'re already on the cheapest provider with no easy commitment or right-sizing win.</div>';
+  }
+
+  h+='<div class="rv-sec-title">Annual savings</div>';
+  if(rec){
+    const others=["AWS","Azure","GCP"].filter(p=>p!==rec);
+    h+='<div class="kpi-row" style="margin-bottom:14px">';
+    h+=kpiCard("savings","Recommended", PLABEL[rec]+" · "+fmt(totals[rec])+"/mo", "at current selection, region and pricing model");
+    for(const p of others){
+      const diff=totals[p]-totals[rec];
+      h+=kpiCard(diff>=0?"trending_down":"trending_up", "vs "+PLABEL[p], (diff>=0?"+":"-")+fmt(Math.abs(diff)*12)+"/yr",
+        diff>=0?("save "+fmt(diff)+"/mo choosing "+PLABEL[rec]):("costs "+fmt(-diff)+"/mo more than "+PLABEL[p]), diff<0);
+    }
+    h+='</div>';
+  } else {
+    h+='<div class="hint" style="margin-bottom:14px">No recommended provider yet — pick at least one product.</div>';
+  }
+
+  h+='<div class="rv-sec-title">Reserved &amp; committed-use terms <span style="text-transform:none;font-weight:400;letter-spacing:0"> — Virtual Machines only; other services aren\'t discounted here</span></div>';
+  if(!selected.has("vm")){
+    h+='<div class="hint">Add Virtual Machines to this scenario to compare on-demand, 1-yr and 3-yr commitment pricing.</div>';
+  } else {
+    h+='<table class="cmp"><tr><th>Term</th>'+["AWS","Azure","GCP"].map(p=>'<th style="text-align:right">'+PLABEL[p]+'</th>').join('')+'</tr>';
+    const monthlyByTerm={};
+    for(const term of COMMIT_TERMS){
+      monthlyByTerm[term.id]={};
+      h+='<tr><td>'+term.label+'</td>';
+      for(const p of ["AWS","Azure","GCP"]){
+        const r=vmCostAtMult(p,term.mult);
+        monthlyByTerm[term.id][p]=r?r.monthly:null;
+        h+='<td class="num">'+(r?fmt(r.monthly):"—")+'</td>';
+      }
+      h+='</tr>';
+    }
+    h+='<tr class="total"><td>3-yr annual savings vs on-demand</td>';
+    for(const p of ["AWS","Azure","GCP"]){
+      const od=monthlyByTerm.ondemand[p], c3=monthlyByTerm["3yr"][p];
+      h+='<td class="num">'+((od!=null&&c3!=null)?fmt((od-c3)*12)+'/yr':'—')+'</td>';
+    }
+    h+='</tr></table>';
+    h+='<div class="hint" style="margin-top:8px">1-yr matches this scenario\'s "Reserved 1-yr" pricing toggle ('+Math.round((1-PM_MULT.reserved)*100)+'% off on-demand). 3-yr is an industry-typical estimate ('+Math.round((1-0.42)*100)+'% off), not a live provider quote. None of the three providers sell a standard public 5-year term — longer commitments require a custom enterprise agreement, so it isn\'t shown.</div>';
+  }
+
+  h+='<div class="rv-sec-title">Spot instance breakeven <span style="text-transform:none;font-weight:400;letter-spacing:0"> — Virtual Machines only</span></div>';
+  if(!selected.has("vm")){
+    h+='<div class="hint">Add Virtual Machines to this scenario to see spot vs on-demand breakeven.</div>';
+  } else {
+    h+='<table class="cmp"><tr><th>Provider</th><th style="text-align:right">On-demand</th><th style="text-align:right">Spot</th><th>Savings &amp; breakeven</th></tr>';
+    for(const p of ["AWS","Azure","GCP"]){
+      const od=vmCostAtMult(p,1.0), sp=vmCostAtMult(p,PM_MULT.spot);
+      if(!od||!sp){ h+='<tr><td>'+PLABEL[p]+'</td><td colspan="3" class="hint">No instance meets the current workload.</td></tr>'; continue; }
+      const pct=(1-sp.monthly/od.monthly)*100;
+      h+='<tr><td>'+PLABEL[p]+'</td><td class="num">'+fmt(od.monthly)+'</td><td class="num">'+fmt(sp.monthly)+'</td>'
+        +'<td><b style="color:var(--good)">-'+pct.toFixed(0)+'%</b><div class="hint" style="margin-top:2px">stays cheaper than on-demand even if up to '+pct.toFixed(0)+'% of spot hours are interrupted and have to be re-provisioned</div></td></tr>';
+    }
+    h+='</table><div class="hint" style="margin-top:8px">Spot is modeled at a flat '+Math.round((1-PM_MULT.spot)*100)+'% discount assumption in this tool, not live per-provider spot market pricing (which moves continuously and varies by instance/zone).</div>';
+  }
+
+  h+='<div class="rv-sec-title">Right-sizing what-if <span style="text-transform:none;font-weight:400;letter-spacing:0"> — Virtual Machines only</span></div>';
+  if(!selected.has("vm")){
+    h+='<div class="hint">Add Virtual Machines to this scenario to explore right-sizing.</div>';
+  } else {
+    const wl=readWorkload();
+    h+='<div class="hint" style="margin-bottom:8px">If this workload could run leaner on vCPU and RAM than the stated minimums, here\'s what changes. This is a what-if, not a usage-based recommendation — the app doesn\'t track actual CPU/RAM utilization.</div>';
+    h+='<div class="viewseg" id="rightsizeSeg" style="width:220px;margin-bottom:10px">'
+      +[10,15,25].map(v=>'<button data-pct="'+v+'" class="'+(v===rightsizeReduction?"active":"")+'">-'+v+'%</button>').join('')
+      +'</div>';
+    h+='<table class="cmp"><tr><th>Provider</th><th>Current pick</th><th>If '+rightsizeReduction+'% leaner</th><th style="text-align:right">Change</th></tr>';
+    const minVcpu=Math.max(1,Math.floor(wl.min_vcpu*(1-rightsizeReduction/100)));
+    const minRam=Math.max(1,Math.floor(wl.min_ram_gb*(1-rightsizeReduction/100)));
+    for(const p of ["AWS","Azure","GCP"]){
+      const cur=bestInstance(p);
+      if(!cur){ h+='<tr><td>'+PLABEL[p]+'</td><td colspan="3" class="hint">No instance meets the current workload.</td></tr>'; continue; }
+      const alt=bestInstanceForReqs(p,minVcpu,minRam);
+      if(!alt || alt.monthly>=cur.compute){
+        h+='<tr><td>'+PLABEL[p]+'</td><td>'+cur.inst.instance_type+' · '+fmt(cur.compute)+'/mo</td><td class="hint" colspan="2">Already the smallest viable instance at this margin</td></tr>';
+      } else {
+        const delta=alt.monthly-cur.compute;
+        h+='<tr><td>'+PLABEL[p]+'</td><td>'+cur.inst.instance_type+' · '+fmt(cur.compute)+'/mo</td><td>'+alt.inst.instance_type+' · '+fmt(alt.monthly)+'/mo</td>'
+          +'<td class="num" style="color:var(--good)">'+fmt(delta)+'/mo</td></tr>';
+      }
+    }
+    h+='</table>';
+  }
+
+  area.innerHTML=h;
+  const seg=document.getElementById("rightsizeSeg");
+  if(seg) seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{ rightsizeReduction=+b.dataset.pct; renderSavingsPanel(); });
+}
+
 function openScenarioCompare(){
   const presets=getStoredPresets();
   if(presets.length<2){ toast("Save at least 2 presets to compare.",{type:"error"}); return; }
@@ -2394,6 +2719,10 @@ function openScenarioCompare(){
     h+='<tr class="total"><td>Google Cloud / mo</td>'+data.map(d=>'<td class="num">'+fmt(d.totals.GCP)+"</td>").join("")+"</tr>";
     h+='<tr class="total"><td>Recommended</td>'+data.map(d=>'<td class="prod">'+(d.rec?PLABEL[d.rec]+" · "+fmt(d.totals[d.rec]):"—")+"</td>").join("")+"</tr>";
     h+="</table>";
+    if(picked.length===2){
+      const provider=data[1].rec||data[0].rec||"AWS";
+      h+=explainScenarioDiff(picked[0], picked[1], provider);
+    }
     document.getElementById("scCompareArea").innerHTML=h;
   };
   container.querySelectorAll(".sc-check").forEach(c=>c.onchange=renderTable);
@@ -2417,7 +2746,10 @@ function drawChart(provs,totals){const ctx=document.getElementById("brkChart");c
   if(typeof Chart==="undefined")return drawFallback(ctx,provs,totals,sel,palette);
   const datasets=sel.map((s,i)=>({label:s.category,data:provs.map(p=>{const c=serviceCost(s,p);return c==null?0:c;}),backgroundColor:palette[i%palette.length],borderWidth:0}));
   if(brkChart)brkChart.destroy();
-  brkChart=new Chart(ctx,{type:"bar",data:{labels:provs.map(p=>PLABEL[p]),datasets},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:11,font:{size:10},color:"#bdc1c6"}},tooltip:{callbacks:{label:c=>c.dataset.label+": $"+c.parsed.y.toFixed(2)}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"#bdc1c6"}},y:{stacked:true,grid:{color:"#3c4043"},ticks:{color:"#bdc1c6",callback:v=>"$"+v}}}}});}
+  brkChart=new Chart(ctx,{type:"bar",data:{labels:provs.map(p=>PLABEL[p]),datasets},options:{responsive:true,
+    onClick:(evt,elements)=>{ if(!elements.length)return; const svc=sel[elements[0].datasetIndex]; if(svc) renderReview(svc.id); },
+    onHover:(evt,elements)=>{ evt.native.target.style.cursor = elements.length?"pointer":"default"; },
+    plugins:{legend:{position:"bottom",labels:{boxWidth:11,font:{size:10},color:"#bdc1c6"}},tooltip:{callbacks:{label:c=>c.dataset.label+": $"+c.parsed.y.toFixed(2)}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"#bdc1c6"}},y:{stacked:true,grid:{color:"#3c4043"},ticks:{color:"#bdc1c6",callback:v=>"$"+v}}}}});}
 function drawFallback(canvas,provs,totals,sel,palette){const dpr=window.devicePixelRatio||1,W=canvas.clientWidth||700,H=180;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.height=H+"px";
   const g=canvas.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,W,H);const padL=48,padB=34,padT=12,plotH=H-padB-padT;const max=Math.max(...provs.map(p=>totals[p]))*1.1||1;
   g.strokeStyle="#3c4043";g.fillStyle="#9aa0a6";g.font="10px 'Segoe UI'";for(let i=0;i<=4;i++){const y=padT+plotH*(i/4);g.beginPath();g.moveTo(padL,y);g.lineTo(W-10,y);g.stroke();g.fillText("$"+Math.round(max*(1-i/4)),4,y+3);}
@@ -2432,6 +2764,9 @@ function setProv(prov){activeProv=prov;
 document.getElementById("provTabs").addEventListener("click",e=>{const t=e.target.closest(".tab");if(t)setProv(t.dataset.prov);});
 document.getElementById("provSeg").addEventListener("click",e=>{const t=e.target.closest(".segbtn");if(t)setProv(t.dataset.prov);});
 document.getElementById("pmSeg").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;pricingModel=t.dataset.pm;document.querySelectorAll("#pmSeg button").forEach(x=>x.classList.toggle("active",x===t));render();});
+document.getElementById("cmpViewSeg").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;cmpView=t.dataset.view;render();});
+document.getElementById("trendGranSeg").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;trendGranularity=t.dataset.gran;renderBillingTrend();});
+document.getElementById("trendViewSeg").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;trendViewMode=t.dataset.view;renderBillingTrend();});
 document.getElementById("objSeg").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;objective=t.dataset.obj;document.querySelectorAll("#objSeg button").forEach(x=>x.classList.toggle("active",x===t));render();});
 document.getElementById("budget").oninput=e=>{budget=+e.target.value||0;render();};
 document.getElementById("unit_users").oninput=e=>{unitEconomics.users=+e.target.value||0;render();};
@@ -2562,6 +2897,7 @@ document.getElementById("brandHome").addEventListener("keydown", e => { if(e.key
 document.getElementById("welcomeContinueBtn").onclick = continueFromWelcome;
 
 let lastBillingSummary=null;
+let trendGranularity="day", trendViewMode="chart", trendChart=null;
 document.getElementById("billingUploadBtn").onclick = () => document.getElementById("billingFileInput").click();
 document.getElementById("billingFileInput").addEventListener("change", async e => {
   const file = e.target.files && e.target.files[0];
@@ -2592,9 +2928,20 @@ document.getElementById("billingFileInput").addEventListener("change", async e =
     area.innerHTML = '<div class="hint">Error: '+esc(err.message)+'</div>';
   }
 });
+function explainAnomalyDrivers(a){
+  const drivers=(a.drivers||[]).filter(d=>Math.abs(d.delta)>0.01);
+  if(!drivers.length) return '<span class="hint">—</span>';
+  const top=drivers[0];
+  const main='<b>'+esc(top.service)+'</b> '+(top.delta>=0?'jumped to ':'dropped to ')+fmt(top.amount)+' <span class="hint">(usually '+fmt(top.baseline)+')</span>';
+  const rest=drivers.slice(1);
+  const restLine=rest.length?('<div class="hint" style="margin-top:2px">also: '+rest.map(d=>esc(d.service)+' '+(d.delta>=0?'+':'')+fmt(d.delta)).join(', ')+'</div>'):'';
+  return main+restLine;
+}
 function renderBillingArea(){
   const area = document.getElementById("billingArea");
-  if(!lastBillingSummary){ area.innerHTML = '<div class="hint">Upload a CSV (columns: date, provider, service, region, amount) covering the same period as this scenario to compare actual spend against the estimate.</div>'; return; }
+  const trendWrap = document.getElementById("billingTrendWrap");
+  if(!lastBillingSummary){ area.innerHTML = '<div class="hint">Upload a CSV (columns: date, provider, service, region, amount) covering the same period as this scenario to compare actual spend against the estimate.</div>'; if(trendWrap) trendWrap.style.display="none"; return; }
+  if(trendWrap){ trendWrap.style.display = (lastBillingSummary.daily&&lastBillingSummary.daily.length) ? "block" : "none"; renderBillingTrend(); }
   const est = {AWS:providerTotal("AWS"),Azure:providerTotal("Azure"),GCP:providerTotal("GCP")};
   const act = lastBillingSummary.totals;
   let h = '<table class="cmp"><tr><th>Provider</th><th style="text-align:right">Estimated / mo</th><th style="text-align:right">Actual (from CSV)</th><th style="text-align:right">Variance</th></tr>';
@@ -2613,14 +2960,78 @@ function renderBillingArea(){
     h += '<div class="hint">No statistical outliers found — each provider\'s daily spend in this file is close to its own typical day. (Needs at least 4 days of history per provider to flag anything.)</div>';
   } else {
     h += '<div class="hint" style="margin-bottom:8px">Provider-days where spend is a statistical outlier vs. that provider\'s own history in this file (robust/median-based z-score).</div>';
-    h += '<table class="cmp"><tr><th>Provider</th><th>Date</th><th style="text-align:right">Amount</th><th style="text-align:right">Typical day</th><th>Signal</th></tr>';
+    h += '<table class="cmp"><tr><th>Provider</th><th>Date</th><th style="text-align:right">Amount</th><th style="text-align:right">Typical day</th><th>Signal</th><th>Likely cause</th></tr>';
     for(const a of anomalies){
       h += '<tr><td>'+PLABEL[a.provider]+'</td><td>'+esc(a.date)+'</td><td class="num">'+fmt(a.amount)+'</td><td class="num">'+fmt(a.baseline)+'</td>'
-        +'<td><span class="tagm '+(a.direction==='spike'?'bud-over':'bud-ok')+'">'+(a.direction==='spike'?'▲ spike':'▼ drop')+' (z='+a.z_score+')</span></td></tr>';
+        +'<td><span class="tagm '+(a.direction==='spike'?'bud-over':'bud-ok')+'">'+(a.direction==='spike'?'▲ spike':'▼ drop')+' (z='+a.z_score+')</span></td>'
+        +'<td>'+explainAnomalyDrivers(a)+'</td></tr>';
     }
     h += '</table>';
   }
   area.innerHTML = h;
+}
+
+// ISO week start (Monday) for the "Weekly" trend rollup.
+function isoWeekStart(dateStr){
+  const d=new Date(dateStr+"T00:00:00Z");
+  const day=(d.getUTCDay()+6)%7; // Mon=0..Sun=6
+  d.setUTCDate(d.getUTCDate()-day);
+  return d.toISOString().slice(0,10);
+}
+function trendBucketKey(dateStr,gran){
+  if(gran==="month") return dateStr.slice(0,7);
+  if(gran==="week") return isoWeekStart(dateStr);
+  return dateStr;
+}
+function aggregateTrend(daily,gran){
+  if(gran==="day") return daily;
+  const buckets={};
+  for(const row of daily){
+    const key=trendBucketKey(row.date,gran);
+    const b=buckets[key]||(buckets[key]={date:key,AWS:0,Azure:0,GCP:0,Other:0});
+    for(const p of ["AWS","Azure","GCP","Other"]) b[p]+=row[p]||0;
+  }
+  return Object.values(buckets).sort((a,b)=>a.date<b.date?-1:1);
+}
+function renderBillingTrend(){
+  if(!lastBillingSummary||!lastBillingSummary.daily) return;
+  document.querySelectorAll("#trendGranSeg button").forEach(b=>b.classList.toggle("active",b.dataset.gran===trendGranularity));
+  document.querySelectorAll("#trendViewSeg button").forEach(b=>b.classList.toggle("active",b.dataset.view===trendViewMode));
+  const rows=aggregateTrend(lastBillingSummary.daily,trendGranularity);
+  const canvas=document.getElementById("trendChart");
+  const tableArea=document.getElementById("trendTableArea");
+  if(trendViewMode==="table"){
+    canvas.style.display="none";
+    const hasOther=rows.some(r=>r.Other>0);
+    let h='<table class="cmp" style="margin-top:6px"><tr><th>'+(trendGranularity==="day"?"Date":trendGranularity==="week"?"Week of":"Month")+'</th><th style="text-align:right">AWS</th><th style="text-align:right">Azure</th><th style="text-align:right">Google Cloud</th>'+(hasOther?'<th style="text-align:right">Other</th>':'')+'</tr>';
+    for(const r of rows) h+='<tr><td>'+esc(r.date)+'</td><td class="num">'+fmt(r.AWS)+'</td><td class="num">'+fmt(r.Azure)+'</td><td class="num">'+fmt(r.GCP)+'</td>'+(hasOther?'<td class="num">'+fmt(r.Other)+'</td>':'')+'</tr>';
+    h+='</table>';
+    tableArea.innerHTML=h;
+    return;
+  }
+  canvas.style.display="block";
+  tableArea.innerHTML="";
+  if(typeof Chart==="undefined") return;
+  const style=getComputedStyle(document.documentElement);
+  const seriesColor={AWS:style.getPropertyValue("--aws").trim(),Azure:style.getPropertyValue("--azure").trim(),GCP:style.getPropertyValue("--gcp").trim()};
+  const hexToRgb=h=>{const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[138,180,248];};
+  const providers=["AWS","Azure","GCP"];
+  // Azure's and GCP's blues sit close enough in hue that an overlapping pair of
+  // lines can be hard to tell apart on color alone — dash GCP as a secondary,
+  // color-independent encoding so identity doesn't rely on hue where they cross.
+  const dashByProvider={AWS:[],Azure:[],GCP:[7,4]};
+  const datasets=providers.map(p=>{const rgb=hexToRgb(seriesColor[p]);return {
+    label:PLABEL[p], data:rows.map(r=>r[p]||0), borderColor:seriesColor[p], borderDash:dashByProvider[p],
+    backgroundColor:"rgba("+rgb.join(",")+",0.08)", borderWidth:2, fill:true, tension:.25,
+    pointRadius:0, pointHoverRadius:5, pointHitRadius:10, pointBackgroundColor:seriesColor[p], pointBorderColor:"#202124", pointBorderWidth:2,
+  };});
+  if(trendChart) trendChart.destroy();
+  trendChart=new Chart(canvas,{type:"line",data:{labels:rows.map(r=>r.date),datasets},options:{
+    responsive:true, interaction:{mode:"index",intersect:false},
+    plugins:{legend:{position:"bottom",labels:{boxWidth:11,font:{size:10},color:"#bdc1c6"}},
+      tooltip:{mode:"index",intersect:false,callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y)}}},
+    scales:{x:{grid:{display:false},ticks:{color:"#bdc1c6",maxTicksLimit:10}},y:{grid:{color:"#3c4043"},ticks:{color:"#bdc1c6",callback:v=>"$"+v},beginAtZero:true}}
+  }});
 }
 document.getElementById("topSearch").addEventListener("input", e => {
   const term = e.target.value;
@@ -2689,12 +3100,18 @@ document.getElementById("assistSend").onclick=()=>assistSend();
 document.getElementById("assistInput").addEventListener("keydown", e=>{ if(e.key==="Enter") assistSend(); });
 document.querySelectorAll("#assistSuggestions .chip").forEach(btn=>btn.onclick=()=>assistSend(btn.textContent));
 
+// TESTING ONLY - set back to true to re-enable the login gate. When false, an
+// unauthenticated visitor goes straight into the dashboard as a guest instead
+// of hitting the auth gate. Server-side RBAC (/api/refresh, /api/train,
+// /api/audit*) is unaffected - those still require a real signed-in session.
+const REQUIRE_LOGIN = true;
+
 (async function(){
   expandRegions();await loadServices();renderCatNav();fillRegions();renderPresetButtons();applyRoleGatingStatic();
   const hasShare=new URLSearchParams(location.search).get("share");
   const user=await fetchCurrentUser();
   refreshAccountUI();
-  if(!user && !hasShare){
+  if(!user && !hasShare && REQUIRE_LOGIN){
     showAuthGate();
   } else {
     if(!user) setRoleGuestViewer();
@@ -2703,7 +3120,7 @@ document.querySelectorAll("#assistSuggestions .chip").forEach(btn=>btn.onclick=(
   }
 })();
 function setRoleGuestViewer(){
-  currentRole="Viewer";
+  isGuest=true;
   applyRoleGatingStatic();
 }
 
